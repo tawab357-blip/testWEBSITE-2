@@ -326,17 +326,7 @@
                         </button>
                     </div>
                     
-                    <div class="voice-transcript" id="voiceTranscript">
-                        <div class="transcript-entry transcript-assistant">
-                            <div class="transcript-icon">
-                                <i class="fas fa-robot"></i>
-                            </div>
-                            <div class="transcript-text">
-                                <div class="transcript-role">AI Assistant</div>
-                                <p>Hello! I'm your AI voice assistant. I'm ready to help you with any questions about our services, pricing, or business inquiries. Just click the call button to start our conversation.</p>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="voice-transcript" id="voiceTranscript"></div>
                     
                     <div class="quick-actions">
                         <h4>Quick Actions</h4>
@@ -440,7 +430,6 @@
                 setTimeout(() => {
                     this.updateStatus('active', 'Call Active');
                     this.startCallTimer();
-                    this.addTranscriptEntry('assistant', 'Hello! Thank you for calling AI Nexus Pro. I\'m your AI assistant. How can I help you today?');
                 }, 2000);
             }
 
@@ -455,7 +444,7 @@
                 document.getElementById('startCall').disabled = false;
                 document.getElementById('endCall').disabled = true;
                 
-                this.addTranscriptEntry('assistant', 'Thank you for calling AI Nexus Pro. Have a great day!');
+                // no fixed goodbye
             }
 
             updateStatus(status, text) {
@@ -525,23 +514,48 @@
                     return;
                 }
 
-                let response = '';
-                switch (action) {
-                    case 'services':
-                        response = 'We offer comprehensive AI integration services including Mobile AI, Web AI, Enterprise AI, and Custom AI Development. Our services cover chatbots, predictive analytics, natural language processing, and more.';
-                        break;
-                    case 'pricing':
-                        response = 'Our pricing is tailored to your specific needs. We offer free consultations, flexible pricing models starting from $2,000/month, and ROI-focused solutions. Would you like to schedule a free consultation?';
-                        break;
-                    case 'consultation':
-                        response = 'I\'d be happy to help you schedule a consultation. We offer 30-minute free consultations where we can discuss your specific needs and provide a custom solution. When would be a good time for you?';
-                        break;
-                    case 'support':
-                        response = 'We provide 24/7 technical support, regular updates, performance monitoring, and continuous optimization. Our support team is always available to help you with any questions or issues.';
-                        break;
-                }
+                this.fetchWebhookAndReply(action);
+            }
 
-                this.addTranscriptEntry('assistant', response);
+            async fetchWebhookAndReply(action) {
+                try {
+                    const res = await fetch(AI_CONFIG.webhook.endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: `Quick action: ${action}` })
+                    });
+                    const data = await res.json();
+                    const reply = data.reply || data.response || JSON.stringify(data);
+                    this.addTranscriptEntry('assistant', reply);
+                } catch (e) {
+                    // Fallback to OpenRouter DeepSeek R1
+                    try {
+                        const response = await fetch(AI_CONFIG.openrouter.endpoint, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${AI_CONFIG.openrouter.apiKey}`,
+                                'HTTP-Referer': window.location.origin,
+                                'X-Title': 'AI Nexus Pro'
+                            },
+                            body: JSON.stringify({
+                                model: AI_CONFIG.openrouter.model,
+                                messages: [
+                                    { role: 'system', content: 'You are a chatbot for AI Nexus Pro.' },
+                                    { role: 'user', content: `Quick action: ${action}` }
+                                ],
+                                max_tokens: AI_CONFIG.openrouter.maxTokens,
+                                temperature: AI_CONFIG.openrouter.temperature
+                            })
+                        });
+                        if (!response.ok) throw new Error('OpenRouter error');
+                        const data = await response.json();
+                        const reply = data.choices[0].message.content;
+                        this.addTranscriptEntry('assistant', reply);
+                    } catch (orErr) {
+                        this.addTranscriptEntry('assistant', 'Unable to reach the AI right now.');
+                    }
+                }
             }
         }
 

@@ -20,24 +20,7 @@ class VapiVoiceBot {
             }
         };
         
-        this.conversationFlows = {
-            welcome: {
-                message: "Hello! Welcome to AI Nexus Pro. I'm your AI assistant, here to help you explore our AI integration services. How can I assist you today?",
-                options: ["Learn about services", "Get pricing", "Schedule consultation", "Speak with human"]
-            },
-            services: {
-                message: "We offer four main AI integration services. Mobile AI for apps, Web AI for websites, Enterprise AI for large businesses, and Custom AI development. Which interests you most?",
-                options: ["Mobile AI", "Web AI", "Enterprise AI", "Custom AI", "Back to main menu"]
-            },
-            pricing: {
-                message: "Our pricing is tailored to your needs. We offer free consultations, flexible monthly plans starting at $2,000, and custom enterprise solutions. Would you like to schedule a free consultation?",
-                options: ["Schedule consultation", "Learn more about pricing", "Speak with sales", "Back to main menu"]
-            },
-            consultation: {
-                message: "Great! I can help you schedule a consultation. Our team will assess your needs and provide a custom AI strategy. What's the best time for a 30-minute call?",
-                options: ["This week", "Next week", "Send me available times", "Speak with human"]
-            }
-        };
+        this.conversationFlows = {};
         
         this.init();
     }
@@ -261,18 +244,38 @@ Keep responses under 30 seconds and always offer next steps.`;
         this.startCallTimer();
         this.showCallControls();
 
-        // Simulate conversation flow
-        setTimeout(() => {
-            this.addTranscriptEntry('assistant', this.conversationFlows.welcome.message);
+        // Fetch dynamic welcome from webhook
+        setTimeout(async () => {
+            let reply = await this.fetchWebhook('start call');
+            if (!reply) {
+                // Fallback to OpenRouter DeepSeek R1
+                try {
+                    const response = await fetch(AI_CONFIG.openrouter.endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${AI_CONFIG.openrouter.apiKey}`,
+                            'HTTP-Referer': window.location.origin,
+                            'X-Title': 'AI Nexus Pro'
+                        },
+                        body: JSON.stringify({
+                            model: AI_CONFIG.openrouter.model,
+                            messages: [
+                                { role: 'system', content: 'You are a chatbot for AI Nexus Pro.' },
+                                { role: 'user', content: 'start call' }
+                            ],
+                            max_tokens: AI_CONFIG.openrouter.maxTokens,
+                            temperature: AI_CONFIG.openrouter.temperature
+                        })
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        reply = data.choices?.[0]?.message?.content || '';
+                    }
+                } catch (_) {}
+            }
+            if (reply) this.addTranscriptEntry('assistant', reply);
         }, 1000);
-
-        // Simulate user responses
-        setTimeout(() => {
-            this.addTranscriptEntry('user', 'I want to learn about your AI services');
-            setTimeout(() => {
-                this.addTranscriptEntry('assistant', this.conversationFlows.services.message);
-            }, 2000);
-        }, 3000);
     }
 
     endVoiceCall() {
@@ -404,27 +407,34 @@ Keep responses under 30 seconds and always offer next steps.`;
     }
 
     processQuickAction(action) {
-        let response = '';
-        
-        switch (action) {
-            case 'services':
-                response = this.conversationFlows.services.message;
-                break;
-            case 'pricing':
-                response = this.conversationFlows.pricing.message;
-                break;
-            case 'consultation':
-                response = this.conversationFlows.consultation.message;
-                break;
-            default:
-                response = this.conversationFlows.welcome.message;
-        }
+        this.fetchWebhookAndReply(action);
+    }
 
-        this.addTranscriptEntry('assistant', response);
-        
-        // Send to Vapi if available
-        if (typeof Vapi !== 'undefined' && this.currentCall) {
-            Vapi.sendMessage(this.currentCall.id, response);
+    async fetchWebhook(prompt) {
+        try {
+            const res = await fetch(AI_CONFIG.webhook.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: prompt })
+            });
+            if (!res.ok) throw new Error('webhook error');
+            const data = await res.json();
+            return data.reply || data.response || '';
+        } catch (e) {
+            console.warn('voice webhook failed', e);
+            return '';
+        }
+    }
+
+    async fetchWebhookAndReply(action) {
+        const reply = await this.fetchWebhook(`Quick action: ${action}`);
+        if (reply) {
+            this.addTranscriptEntry('assistant', reply);
+            if (typeof Vapi !== 'undefined' && this.currentCall) {
+                Vapi.sendMessage(this.currentCall.id, reply);
+            }
+        } else {
+            this.addTranscriptEntry('assistant', 'Unable to reach the AI right now.');
         }
     }
 

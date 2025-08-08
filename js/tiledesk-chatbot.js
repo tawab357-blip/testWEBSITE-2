@@ -6,51 +6,51 @@ class TiledeskChatbot {
             services: [
                 {
                     question: "What AI services do you offer?",
-                    answer: "We offer comprehensive AI integration services including Mobile AI, Web AI, Enterprise AI, and Custom AI Development. Our services cover chatbots, predictive analytics, natural language processing, and more.",
+                    answer: "",
                     keywords: ["services", "offer", "ai", "what", "do"]
                 },
                 {
                     question: "How much do your AI services cost?",
-                    answer: "Our pricing is tailored to your specific needs. We offer free consultations, flexible pricing models starting from $2,000/month, and ROI-focused solutions. Contact us for a custom quote.",
+                    answer: "",
                     keywords: ["cost", "price", "pricing", "how much", "money"]
                 },
                 {
                     question: "How long does AI integration take?",
-                    answer: "Typical AI integration projects take 4-12 weeks depending on complexity. Mobile AI: 4-6 weeks, Web AI: 6-8 weeks, Enterprise AI: 8-12 weeks. We provide detailed timelines during consultation.",
+                    answer: "",
                     keywords: ["time", "duration", "how long", "weeks", "months"]
                 }
             ],
             technical: [
                 {
                     question: "What technologies do you use?",
-                    answer: "We use cutting-edge technologies including OpenAI GPT, Google Gemini, TensorFlow, PyTorch, React, Node.js, Python, and cloud platforms like AWS and Azure.",
+                    answer: "",
                     keywords: ["technology", "tech", "tools", "platforms", "what"]
                 },
                 {
                     question: "Do you provide ongoing support?",
-                    answer: "Yes! We provide 24/7 technical support, regular updates, performance monitoring, and continuous optimization. Our support includes maintenance, troubleshooting, and feature enhancements.",
+                    answer: "",
                     keywords: ["support", "help", "maintenance", "ongoing", "24/7"]
                 },
                 {
                     question: "Is my data secure?",
-                    answer: "Absolutely. We implement enterprise-grade security with bank-level encryption, SOC 2 compliance, GDPR adherence, and secure cloud infrastructure. Your data is protected at every level.",
+                    answer: "",
                     keywords: ["security", "secure", "data", "privacy", "encryption"]
                 }
             ],
             business: [
                 {
                     question: "What ROI can I expect?",
-                    answer: "Our clients typically see 300% average ROI within 6-12 months. Specific benefits include 80% faster response times, 40% increased customer satisfaction, and 50% reduction in operational costs.",
+                    answer: "",
                     keywords: ["roi", "return", "benefit", "results", "expect"]
                 },
                 {
                     question: "Do you work with small businesses?",
-                    answer: "Yes! We work with businesses of all sizes, from startups to Fortune 500 companies. We have scalable solutions and flexible pricing to accommodate different business needs and budgets.",
+                    answer: "",
                     keywords: ["small", "business", "startup", "company", "size"]
                 },
                 {
                     question: "Can you integrate with existing systems?",
-                    answer: "Absolutely. We specialize in seamless integration with existing systems including CRMs, ERPs, websites, mobile apps, and custom software. We ensure minimal disruption to your operations.",
+                    answer: "",
                     keywords: ["integrate", "existing", "systems", "crm", "erp"]
                 }
             ]
@@ -79,7 +79,7 @@ class TiledeskChatbot {
                 backgroundColor: "#ffffff",
                 textColor: "#333333"
             },
-            welcomeMessage: "👋 Hi! I'm your AI business assistant. How can I help you today?",
+            welcomeMessage: "",
             position: "bottom-right",
             size: "medium",
             enableNotifications: true,
@@ -192,7 +192,7 @@ class TiledeskChatbot {
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer" id="faq-answer-${index}">
-                    <p>${faq.answer}</p>
+                    <p id="faq-dynamic-answer-${category}-${index}"></p>
                     <button class="faq-action-btn" onclick="tiledeskChatbot.askFollowUp('${faq.question}')">
                         <i class="fas fa-comment"></i>
                         Ask Follow-up
@@ -200,6 +200,9 @@ class TiledeskChatbot {
                 </div>
             `;
             questionsContainer.appendChild(questionElement);
+
+            // Fetch dynamic answer from webhook
+            this.fetchDynamicAnswer(faq.question, `faq-dynamic-answer-${category}-${index}`);
         });
     }
 
@@ -243,19 +246,49 @@ class TiledeskChatbot {
         }
     }
 
-    handleIncomingMessage(message) {
-        // Process incoming messages and provide intelligent responses
-        const userMessage = message.text.toLowerCase();
+    async handleIncomingMessage(message) {
+        // Route all messages to webhook for dynamic responses
+        const userMessage = (message.text || '').toLowerCase();
         this.conversationHistory.push({ role: 'user', content: userMessage });
 
-        // Analyze user intent
-        this.analyzeIntent(userMessage);
-
-        // Generate appropriate response
-        const response = this.generateResponse(userMessage);
-        
-        // Send response back
-        this.sendResponse(response);
+        try {
+            const res = await fetch(AI_CONFIG.webhook.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userMessage })
+            });
+            const data = await res.json();
+            const text = data.reply || data.response || '';
+            this.sendResponse({ text, type: 'webhook', confidence: 1 });
+        } catch (e) {
+            // Fallback to OpenRouter
+            try {
+                const response = await fetch(AI_CONFIG.openrouter.endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AI_CONFIG.openrouter.apiKey}`,
+                        'HTTP-Referer': window.location.origin,
+                        'X-Title': 'AI Nexus Pro'
+                    },
+                    body: JSON.stringify({
+                        model: AI_CONFIG.openrouter.model,
+                        messages: [
+                            { role: 'system', content: 'You are a chatbot for AI Nexus Pro.' },
+                            { role: 'user', content: userMessage }
+                        ],
+                        max_tokens: AI_CONFIG.openrouter.maxTokens,
+                        temperature: AI_CONFIG.openrouter.temperature
+                    })
+                });
+                if (!response.ok) throw new Error('OpenRouter error');
+                const data = await response.json();
+                const text = data.choices?.[0]?.message?.content || '';
+                this.sendResponse({ text, type: 'openrouter', confidence: 1 });
+            } catch (orError) {
+                console.warn('Tiledesk OpenRouter fallback failed', orError);
+            }
+        }
     }
 
     analyzeIntent(message) {
@@ -333,50 +366,71 @@ class TiledeskChatbot {
     }
 
     generateContextualResponse(message) {
-        switch (this.userIntent) {
-            case 'services':
-                return {
-                    text: "We offer comprehensive AI integration services including Mobile AI, Web AI, Enterprise AI, and Custom AI Development. Would you like me to explain any specific service in detail?",
-                    type: 'intent',
-                    confidence: 0.8
-                };
-            case 'pricing':
-                return {
-                    text: "Our pricing is tailored to your specific needs. We offer free consultations and flexible pricing models. Would you like to schedule a free consultation to discuss your requirements?",
-                    type: 'intent',
-                    confidence: 0.8
-                };
-            case 'timeline':
-                return {
-                    text: "Typical AI integration projects take 4-12 weeks depending on complexity. We provide detailed timelines during our consultation. Would you like to discuss your project timeline?",
-                    type: 'intent',
-                    confidence: 0.8
-                };
-            case 'contact':
-                return {
-                    text: "I'd be happy to connect you with our team! You can call us at +1 (555) 123-4567, email hello@ainexuspro.com, or schedule a consultation through our website. What works best for you?",
-                    type: 'intent',
-                    confidence: 0.9
-                };
-            default:
-                return {
-                    text: "That's a great question! I'm here to help you explore AI opportunities for your business. Could you tell me more about your specific needs or challenges?",
-                    type: 'general',
-                    confidence: 0.6
-                };
-        }
+        // Defer to webhook for dynamic responses
+        return {
+            text: '',
+            type: 'webhook',
+            confidence: 0.5
+        };
     }
 
     sendResponse(response) {
-        if (typeof Tiledesk !== 'undefined') {
-            Tiledesk.sendMessage(response.text);
-        } else {
-            // Fallback: show response in custom widget
-            this.showCustomResponse(response.text);
+        if (response.text) {
+            if (typeof Tiledesk !== 'undefined') {
+                Tiledesk.sendMessage(response.text);
+            } else {
+                this.showCustomResponse(response.text);
+            }
         }
 
         // Add to conversation history
-        this.conversationHistory.push({ role: 'assistant', content: response.text });
+        if (response.text) {
+            this.conversationHistory.push({ role: 'assistant', content: response.text });
+        }
+    }
+
+    async fetchDynamicAnswer(question, targetElementId) {
+        try {
+            const res = await fetch(AI_CONFIG.webhook.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: question })
+            });
+            if (!res.ok) throw new Error('FAQ webhook failed');
+            const data = await res.json();
+            const text = data.reply || data.response || '';
+            const el = document.getElementById(targetElementId);
+            if (el) el.textContent = text;
+        } catch (e) {
+            // fallback to OpenRouter
+            try {
+                const response = await fetch(AI_CONFIG.openrouter.endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AI_CONFIG.openrouter.apiKey}`,
+                        'HTTP-Referer': window.location.origin,
+                        'X-Title': 'AI Nexus Pro'
+                    },
+                    body: JSON.stringify({
+                        model: AI_CONFIG.openrouter.model,
+                        messages: [
+                            { role: 'system', content: 'You are a chatbot for AI Nexus Pro.' },
+                            { role: 'user', content: question }
+                        ],
+                        max_tokens: AI_CONFIG.openrouter.maxTokens,
+                        temperature: AI_CONFIG.openrouter.temperature
+                    })
+                });
+                if (!response.ok) throw new Error('OpenRouter error');
+                const data = await response.json();
+                const text = data.choices?.[0]?.message?.content || '';
+                const el = document.getElementById(targetElementId);
+                if (el) el.textContent = text;
+            } catch (orErr) {
+                console.warn('FAQ OpenRouter fallback failed', orErr);
+            }
+        }
     }
 
     showCustomResponse(response) {

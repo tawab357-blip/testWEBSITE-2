@@ -1,8 +1,7 @@
 // AI Integration with Free APIs
 class AIIntegration {
     constructor() {
-        this.apiKey = null;
-        this.provider = 'openai'; // or 'gemini', 'huggingface'
+        this.provider = AI_CONFIG.provider || 'webhook';
         this.init();
     }
 
@@ -12,44 +11,23 @@ class AIIntegration {
     }
 
     setupFreeAPIs() {
-        // Try to get API keys from environment or use free alternatives
-        this.apiKey = this.getAPIKey();
-        
-        // Setup free API endpoints
+        // Unified provider map with webhook and OpenRouter
         this.freeAPIs = {
-            openai: {
-                endpoint: 'https://api.openai.com/v1/chat/completions',
-                model: 'gpt-3.5-turbo',
+            webhook: {
+                endpoint: AI_CONFIG.webhook.endpoint,
+            },
+            openrouter: {
+                endpoint: AI_CONFIG.openrouter.endpoint,
+                model: AI_CONFIG.openrouter.model,
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.apiKey}`
-                }
-            },
-            gemini: {
-                endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-                apiKey: this.getGeminiKey()
-            },
-            huggingface: {
-                endpoint: 'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium',
-                headers: {
-                    'Authorization': `Bearer ${this.getHuggingFaceKey()}`
+                    'Authorization': `Bearer ${AI_CONFIG.openrouter.apiKey}`
                 }
             }
         };
     }
 
-    getAPIKey() {
-        // Try to get from environment or use a free tier key
-        return process.env.OPENAI_API_KEY || 'your-free-api-key-here';
-    }
-
-    getGeminiKey() {
-        return process.env.GEMINI_API_KEY || 'your-gemini-api-key-here';
-    }
-
-    getHuggingFaceKey() {
-        return process.env.HUGGINGFACE_API_KEY || 'your-huggingface-api-key-here';
-    }
+    // Removed legacy key getters; using AI_CONFIG
 
     setupEventListeners() {
         // Listen for AI requests from other components
@@ -98,22 +76,16 @@ class AIIntegration {
     }
 
     async generateChatResponse(input) {
-        // Try different providers in order of preference
-        const providers = ['openai', 'gemini', 'huggingface'];
-        
+        // Try webhook first, then OpenRouter DeepSeek R1
+        const providers = ['webhook', 'openrouter'];
         for (const provider of providers) {
             try {
                 const response = await this.callAPI(provider, input);
-                if (response) {
-                    return response;
-                }
+                if (response) return response;
             } catch (error) {
                 console.warn(`${provider} API failed, trying next...`, error);
-                continue;
             }
         }
-        
-        // If all APIs fail, return fallback response
         return this.generateFallbackResponse(input);
     }
 
@@ -121,18 +93,14 @@ class AIIntegration {
         const api = this.freeAPIs[provider];
         if (!api) return null;
 
-        const systemPrompt = `You are an AI business assistant for AI Nexus Pro, a company that provides AI integration services. 
-        You help potential clients understand AI solutions, pricing, and business benefits. 
-        Be helpful, professional, and encourage them to explore our services.`;
+        const systemPrompt = `You are a chatbot for AI Nexus Pro. Be helpful and concise. Answer as an AI agent of AI Nexus Pro and avoid fixed/templated replies.`;
 
         try {
             switch (provider) {
-                case 'openai':
-                    return await this.callOpenAI(api, input, systemPrompt);
-                case 'gemini':
-                    return await this.callGemini(api, input, systemPrompt);
-                case 'huggingface':
-                    return await this.callHuggingFace(api, input);
+                case 'webhook':
+                    return await this.callWebhook(api, input);
+                case 'openrouter':
+                    return await this.callOpenRouter(api, input, systemPrompt);
                 default:
                     return null;
             }
@@ -142,7 +110,7 @@ class AIIntegration {
         }
     }
 
-    async callOpenAI(api, input, systemPrompt) {
+    async callOpenRouter(api, input, systemPrompt) {
         const response = await fetch(api.endpoint, {
             method: 'POST',
             headers: api.headers,
@@ -152,89 +120,38 @@ class AIIntegration {
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: input }
                 ],
-                max_tokens: 150,
-                temperature: 0.7
+                max_tokens: AI_CONFIG.openrouter.maxTokens,
+                temperature: AI_CONFIG.openrouter.temperature
             })
         });
-
-        if (!response.ok) {
-            throw new Error(`OpenAI API error: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`OpenRouter API error: ${response.status}`);
         const data = await response.json();
         return data.choices?.[0]?.message?.content || null;
     }
 
-    async callGemini(api, input, systemPrompt) {
-        const response = await fetch(`${api.endpoint}?key=${api.apiKey}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `${systemPrompt}\n\nUser: ${input}\n\nAssistant:`
-                    }]
-                }],
-                generationConfig: {
-                    maxOutputTokens: 150,
-                    temperature: 0.7
-                }
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Gemini API error: ${response.status}`);
+    async callWebhook(api, input) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), AI_CONFIG.webhook.timeoutMs);
+        try {
+            const response = await fetch(api.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: input }),
+                signal: controller.signal
+            });
+            if (!response.ok) throw new Error(`Webhook error: ${response.status}`);
+            const data = await response.json();
+            return data.reply || data.response || JSON.stringify(data);
+        } finally {
+            clearTimeout(timeout);
         }
-
-        const data = await response.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
     }
 
-    async callHuggingFace(api, input) {
-        const response = await fetch(api.endpoint, {
-            method: 'POST',
-            headers: api.headers,
-            body: JSON.stringify({
-                inputs: input,
-                parameters: {
-                    max_length: 100,
-                    temperature: 0.7
-                }
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HuggingFace API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data[0]?.generated_text || null;
-    }
+    // Removed HuggingFace path
 
     generateFallbackResponse(input) {
-        const lowerInput = input.toLowerCase();
-        
-        // Predefined responses for common queries
-        const responses = {
-            services: "We offer comprehensive AI integration services including chatbots, voice bots, predictive analytics, and custom AI solutions. Our services help businesses automate processes, improve customer experience, and drive growth.",
-            pricing: "Our pricing is tailored to your specific needs. We offer free consultations, flexible pricing models starting from $2,000/month, and ROI-focused solutions. Would you like to schedule a free consultation?",
-            contact: "You can reach us at hello@ainexuspro.com or call us at +1 (555) 123-4567. We're available 24/7 for support and consultations.",
-            chatbot: "Our AI chatbots provide 24/7 customer support, handle complex queries, and integrate seamlessly with your existing systems. They can reduce response times by up to 80%.",
-            voice: "Our voice bots offer natural conversation capabilities, real-time transcription, and seamless human handoff. Perfect for customer service and sales calls.",
-            benefits: "AI integration can increase efficiency by 40%, reduce costs by 30%, and improve customer satisfaction by 50%. Our solutions deliver measurable ROI within 6-12 months."
-        };
-
-        // Find the best matching response
-        for (const [key, response] of Object.entries(responses)) {
-            if (lowerInput.includes(key)) {
-                return response;
-            }
-        }
-
-        // Default response
-        return "Thank you for your interest in AI Nexus Pro! I'm here to help you explore AI solutions for your business. Could you tell me more about your specific needs or questions?";
+        // Avoid fixed replies per requirement
+        return `I'm processing your request but couldn't reach the AI service right now. Please try again.`;
     }
 
     async generateVoiceResponse(input) {

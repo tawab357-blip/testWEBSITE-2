@@ -157,7 +157,7 @@ class AIAssistant {
         this.isProcessing = false;
         
         // API Configuration from config file
-        this.apiConfig = AI_CONFIG[AI_CONFIG.provider];
+        this.apiConfig = AI_CONFIG[AI_CONFIG.provider] || {};
         this.provider = AI_CONFIG.provider;
         
         this.init();
@@ -166,7 +166,7 @@ class AIAssistant {
     init() {
         this.setupEventListeners();
         this.startTracking();
-        this.showWelcomeMessage();
+        // Remove welcome/prefixed auto messages per requirement
         
         // Start live content updates if enabled
         if (AI_CONFIG.liveUpdates.enabled) {
@@ -322,12 +322,9 @@ class AIAssistant {
         this.conversationHistory.push({ role: 'user', content: input });
 
         try {
-            // Generate AI response using ChatGPT API
+            // Generate AI response using configured provider (webhook/OpenRouter)
             const response = await this.generateAIResponse(input);
-            
-            // Add subtle pitching based on context
-            const finalResponse = this.addSubtlePitch(response, lowerInput);
-            
+            const finalResponse = response;
             this.addAIResponse(finalResponse);
             this.conversationHistory.push({ role: 'assistant', content: finalResponse });
         } catch (error) {
@@ -341,42 +338,73 @@ class AIAssistant {
 
     async generateAIResponse(input) {
         // Check if API key is configured
-        if (this.apiConfig.apiKey.includes('your-') || this.apiConfig.apiKey === '') {
-            throw new Error('API key not configured');
+        const systemPrompt = `You are a chatbot for AI Nexus Pro. Keep responses helpful, concise, and dynamic. No fixed replies.`;
+
+        if (this.provider === 'webhook') {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), AI_CONFIG.webhook.timeoutMs);
+            try {
+                const res = await fetch(AI_CONFIG.webhook.endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: input, system: systemPrompt, history: this.conversationHistory }),
+                    signal: controller.signal
+                });
+                if (!res.ok) throw new Error(`Webhook error: ${res.status}`);
+                const data = await res.json();
+                return data.reply || data.response || JSON.stringify(data);
+            } catch (e) {
+                // Fallback to OpenRouter DeepSeek R1
+                return await this.generateAIResponseWithOpenRouter(input, systemPrompt);
+            } finally {
+                clearTimeout(timeout);
+            }
+        } else if (this.provider === 'openrouter') {
+            const response = await fetch(AI_CONFIG.openrouter.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${AI_CONFIG.openrouter.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: AI_CONFIG.openrouter.model,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        ...this.conversationHistory.slice(-AI_CONFIG.chat.maxHistoryLength),
+                        { role: 'user', content: input }
+                    ],
+                    max_tokens: AI_CONFIG.openrouter.maxTokens,
+                    temperature: AI_CONFIG.openrouter.temperature
+                })
+            });
+            if (!response.ok) throw new Error(`OpenRouter error: ${response.status}`);
+            const data = await response.json();
+            return data.choices[0].message.content;
         }
+        throw new Error('Unsupported AI provider');
+    }
 
-        const systemPrompt = `You are an AI business consultant specializing in AI integration services. You help potential clients understand how AI can benefit their business. 
-
-Your role is to:
-1. Provide helpful, professional advice about AI solutions
-2. Understand the client's business needs
-3. Suggest relevant AI services (Mobile AI, Web AI, Enterprise AI, Custom AI)
-4. Be conversational and engaging
-5. Subtly pitch our services when appropriate
-6. Keep responses concise but informative (2-3 paragraphs max)
-7. Use emojis sparingly to make responses friendly
-
-Current context:
-- User has been on site for ${this.userContext.timeOnSite} seconds
-- Current section: ${this.userContext.currentSection}
-- User interactions: ${this.userContext.interactions}
-- User interests: ${this.userContext.interests.join(', ')}
-
-Our services include:
-- Mobile AI Integration (chatbots, predictive features)
-- Web AI Solutions (personalization, analytics)
-- Enterprise AI (automation, insights)
-- Custom AI Development
-
-Respond in a helpful, professional tone that builds trust and interest in our services.`;
-
-        if (this.provider === 'openai') {
-            return await this.generateOpenAIResponse(input, systemPrompt);
-        } else if (this.provider === 'gemini') {
-            return await this.generateGeminiResponse(input, systemPrompt);
-        } else {
-            throw new Error('Unsupported AI provider');
-        }
+    async generateAIResponseWithOpenRouter(input, systemPrompt) {
+        const response = await fetch(AI_CONFIG.openrouter.endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${AI_CONFIG.openrouter.apiKey}`
+            },
+            body: JSON.stringify({
+                model: AI_CONFIG.openrouter.model,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    ...this.conversationHistory.slice(-AI_CONFIG.chat.maxHistoryLength),
+                    { role: 'user', content: input }
+                ],
+                max_tokens: AI_CONFIG.openrouter.maxTokens,
+                temperature: AI_CONFIG.openrouter.temperature
+            })
+        });
+        if (!response.ok) throw new Error(`OpenRouter error: ${response.status}`);
+        const data = await response.json();
+        return data.choices[0].message.content;
     }
 
     async generateOpenAIResponse(input, systemPrompt) {
@@ -439,32 +467,13 @@ Respond in a helpful, professional tone that builds trust and interest in our se
     }
 
     generateFallbackResponse(input) {
-        // Fallback responses when API is not available
-        if (input.includes('service') || input.includes('what do you do')) {
-            return "🚀 We specialize in AI integration services that transform businesses! Our expertise includes Mobile AI, Web AI, Enterprise AI, and Custom AI Development. What type of business are you in? I can suggest the perfect AI solution for your needs!";
-        }
-
-        if (input.includes('price') || input.includes('cost') || input.includes('how much')) {
-            return "💰 Our pricing is tailored to your specific needs. We offer free consultations, flexible pricing models, and ROI-focused solutions. Would you like to schedule a free consultation to discuss your requirements?";
-        }
-
-        if (input.includes('benefit') || input.includes('help') || input.includes('why ai')) {
-            return "🎯 AI can revolutionize your business with 80% faster response times, 40% increased customer satisfaction, and 300% average ROI. Many clients see results within the first month! What's your biggest business challenge?";
-        }
-
-        return "🤖 That's a great question! I'm here to help you explore how AI can benefit your business. Could you tell me more about your industry and current challenges? This will help me provide targeted recommendations!";
+        // Avoid fixed replies per requirement
+        return "I'm having trouble reaching the AI right now. Please try again.";
     }
 
 
 
-    showWelcomeMessage() {
-        // Show welcome message after a delay
-        setTimeout(() => {
-            if (!this.isOpen) {
-                this.addAIResponse("👋 I'm here to help you explore AI opportunities! Feel free to ask me about our services, pricing, or how AI can benefit your business.", 2000);
-            }
-        }, 3000);
-    }
+    // Removed auto welcome message
 
     startTracking() {
         // Track user behavior
@@ -556,20 +565,16 @@ Respond in a helpful, professional tone that builds trust and interest in our se
         // Section-based pitching
         if (AI_CONFIG.pitching.sectionBasedPitching) {
             if (currentSection === 'solutions' && !input.includes('contact')) {
-                response += "\n\n💡 I noticed you're exploring our solutions! Would you like me to explain how any specific AI integration could work for your business?";
+                // disabled
             }
             
             if (currentSection === 'about' && interactions > AI_CONFIG.pitching.subtlePitchThreshold) {
-                response += "\n\n🌟 Based on our conversation, I think you'd be a great fit for our AI transformation program. Should we schedule a quick call to discuss your specific needs?";
+                // disabled
             }
         }
         
         // Interaction-based pitching
-        if (interactions > AI_CONFIG.pitching.directPitchThreshold) {
-            response += "\n\n🎯 You seem very interested in AI solutions! Many businesses like yours are already seeing amazing results. Would you like to see some case studies or schedule a consultation?";
-        } else if (interactions > AI_CONFIG.pitching.subtlePitchThreshold) {
-            response += "\n\n✨ I'm here to help you explore AI opportunities! Feel free to ask me about specific use cases or how we can tailor solutions for your business.";
-        }
+        // disabled
         
         return response;
     }
@@ -581,35 +586,148 @@ document.addEventListener('DOMContentLoaded', () => {
     aiAssistant = new AIAssistant();
 });
 
-// Contact Form Handling
+// Contact Form Handling (Home and Contact page)
 const contactForm = document.getElementById('contactForm');
 if (contactForm) {
-    contactForm.addEventListener('submit', function(e) {
+    const submitButton = contactForm.querySelector('button[type="submit"]');
+    const setSubmitting = (submitting) => {
+        if (submitButton) {
+            submitButton.disabled = submitting;
+            submitButton.innerHTML = submitting ? '<i class="fas fa-spinner fa-spin"></i> Sending...' : '<i class="fas fa-paper-plane"></i> Send Message';
+        }
+    };
+
+    const postFormWithIframe = (endpoint, data) => {
+        return new Promise((resolve, reject) => {
+            try {
+                // Create hidden iframe
+                const iframeName = 'contact_hidden_iframe_' + Date.now();
+                const iframe = document.createElement('iframe');
+                iframe.name = iframeName;
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+
+                // Build a temporary form for x-www-form-urlencoded POST
+                const tempForm = document.createElement('form');
+                tempForm.action = endpoint;
+                tempForm.method = 'POST';
+                tempForm.target = iframeName;
+                tempForm.style.display = 'none';
+
+                Object.keys(data).forEach((key) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = typeof data[key] === 'string' ? data[key] : JSON.stringify(data[key]);
+                    tempForm.appendChild(input);
+                });
+
+                document.body.appendChild(tempForm);
+
+                const cleanup = () => {
+                    setTimeout(() => {
+                        tempForm.remove();
+                        iframe.remove();
+                    }, 0);
+                };
+
+                iframe.addEventListener('load', () => {
+                    cleanup();
+                    resolve();
+                });
+
+                // Submit
+                tempForm.submit();
+
+                // Safety timeout resolve (some endpoints may not return visible response)
+                setTimeout(() => {
+                    cleanup();
+                    resolve();
+                }, 6000);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    };
+
+    contactForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
-        // Get form data
+
         const formData = new FormData(this);
-        const name = formData.get('name');
-        const email = formData.get('email');
-        const company = formData.get('company');
-        const message = formData.get('message');
-        
+        const name = (formData.get('name') || '').toString().trim();
+        const email = (formData.get('email') || '').toString().trim();
+        const company = (formData.get('company') || '').toString().trim();
+        const phone = (formData.get('phone') || '').toString().trim();
+        const service = (formData.get('service') || '').toString();
+        const message = (formData.get('message') || '').toString().trim();
+
         // Basic validation
         if (!name || !email || !message) {
             showNotification('Please fill in all required fields.', 'error');
             return;
         }
-        
         if (!isValidEmail(email)) {
             showNotification('Please enter a valid email address.', 'error');
             return;
         }
-        
-        // Simulate form submission
-        showNotification('Thank you for your message! We\'ll get back to you soon.', 'success');
-        
-        // Reset form
-        this.reset();
+
+        // Submit to webhook
+        try {
+            setSubmitting(true);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), (AI_CONFIG.forms && AI_CONFIG.forms.timeoutMs) || 15000);
+            const endpoint = (AI_CONFIG.forms && AI_CONFIG.forms.contactWebhookEndpoint) || 'http://localhost:5678/webhook/a204f0d5-3fea-4244-8101-953bbb503799';
+            const payload = {
+                name,
+                email,
+                company,
+                phone,
+                service,
+                message,
+                page: window.location.pathname,
+                timestamp: new Date().toISOString()
+            };
+
+            let success = false;
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (!res.ok) throw new Error(`Webhook responded with ${res.status}`);
+                success = true;
+            } catch (primaryErr) {
+                // Fallback via hidden iframe POST (x-www-form-urlencoded)
+                try {
+                    await postFormWithIframe(endpoint, payload);
+                    success = true;
+                } catch (fallbackErr) {
+                    throw primaryErr;
+                }
+            }
+
+            if (success) {
+                showNotification("Thanks! Your details were sent successfully.", 'success');
+                this.reset();
+            }
+        } catch (err) {
+            console.error('Contact webhook error:', err);
+            showNotification('We could not send your message right now. Please try again.', 'error');
+        } finally {
+            setSubmitting(false);
+        }
+    });
+
+    // Ensure Enter triggers submit from any input/textarea
+    contactForm.addEventListener('keypress', (e) => {
+        const target = e.target;
+        if (e.key === 'Enter' && target && target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            contactForm.requestSubmit();
+        }
     });
 }
 

@@ -149,8 +149,9 @@
 .faq-window {
     position: absolute;
     bottom: 80px;
-    right: 0;
+    left: 0;
     width: 400px;
+    max-width: calc(100vw - 40px);
     height: 500px;
     background: white;
     border-radius: 20px;
@@ -281,6 +282,15 @@
     right: 20px;
     z-index: 1000;
     font-family: 'Inter', sans-serif;
+}
+
+/* Ensure FAQ on voice page stays in viewport */
+@media (max-width: 768px) {
+  .faq-window {
+    left: auto;
+    right: 0;
+    width: 90vw;
+  }
 }
 
 .voice-toggle {
