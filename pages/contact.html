@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact Us • AI Nexus Pro</title>
+  <meta name="description" content="Speak with AI Nexus Pro. Share your goals and get a tailored AI roadmap and proposal." />
+
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-logo" onclick="window.location.href='../index.html'" style="cursor:pointer">
+        <i class="fas fa-brain"></i>
+        <span>AI Nexus Pro</span>
+      </div>
+      <ul class="nav-menu">
+        <li class="nav-item"><a href="../index.html" class="nav-link">Home</a></li>
+        <li class="nav-item"><a href="chatbot.html" class="nav-link">AI Chatbot</a></li>
+        <li class="nav-item"><a href="voicebot.html" class="nav-link">Voice Bot</a></li>
+        <li class="nav-item"><a href="calendar.html" class="nav-link">Calendar</a></li>
+        <li class="nav-item"><a href="payments.html" class="nav-link">Payments</a></li>
+        <li class="nav-item"><a href="admin.html" class="nav-link">Admin</a></li>
+        <li class="nav-item"><a href="#" class="nav-link">Contact</a></li>
+      </ul>
+      <div class="nav-actions">
+        <a href="#contact" class="btn btn-primary btn-sm">Get Started</a>
+      </div>
+      <div class="hamburger">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contact Hero -->
+  <section class="hero" style="min-height: 60vh; padding: 140px 0 60px;">
+    <div class="hero-background">
+      <div class="hero-particles"></div>
+      <div class="hero-gradient"></div>
+    </div>
+    <div class="hero-container" style="grid-template-columns: 1.2fr 0.8fr; gap: 3rem;">
+      <div class="hero-content">
+        <div class="hero-badge"><i class="fas fa-handshake"></i><span>Let’s Build Something Great</span></div>
+        <h1 class="hero-title" style="font-size: 3rem;">Tell Us About Your Project</h1>
+        <p class="hero-subtitle">We’ll come back within one business day with a tailored AI roadmap, estimated timeline, and pricing. No obligations.</p>
+        <div class="hero-stats">
+          <div class="stat-item"><span class="stat-number">98%</span><span class="stat-label">Client Satisfaction</span></div>
+          <div class="stat-item"><span class="stat-number">500+</span><span class="stat-label">Projects Delivered</span></div>
+          <div class="stat-item"><span class="stat-number">24/7</span><span class="stat-label">Support</span></div>
+        </div>
+      </div>
+      <div class="contact-form" id="contact">
+        <form id="contactForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="name">Full Name *</label>
+              <input type="text" id="name" name="name" required />
+            </div>
+            <div class="form-group">
+              <label for="email">Email Address *</label>
+              <input type="email" id="email" name="email" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="company">Company</label>
+              <input type="text" id="company" name="company" />
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone</label>
+              <input type="tel" id="phone" name="phone" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="service">Service Interest</label>
+            <select id="service" name="service">
+              <option value="">Select a service</option>
+              <option value="mobile">Mobile AI Integration</option>
+              <option value="web">Web AI Integration</option>
+              <option value="enterprise">Enterprise AI Solutions</option>
+              <option value="custom">Custom AI Development</option>
+              <option value="consultation">AI Consultation</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="message">Project Details *</label>
+            <textarea id="message" name="message" rows="5" required placeholder="Share your goals, challenges, timelines, and success metrics..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-paper-plane"></i> Send Message</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust Section -->
+  <section class="partners-section">
+    <div class="container">
+      <h3>Trusted by ambitious teams</h3>
+      <div class="partners-grid">
+        <div class="partner-item"><i class="fas fa-shield-alt"></i><span>Security-first</span></div>
+        <div class="partner-item"><i class="fas fa-chart-line"></i><span>ROI-driven</span></div>
+        <div class="partner-item"><i class="fas fa-rocket"></i><span>Fast delivery</span></div>
+        <div class="partner-item"><i class="fas fa-hands-helping"></i><span>Fair pricing</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ / Assurance -->
+  <section class="services" style="padding-top: 40px">
+    <div class="container">
+      <div class="service-detail">
+        <div class="service-content">
+          <h3>What happens after I submit?</h3>
+          <p>We review your details and reply with a tailored plan, timelines, and estimated cost. If needed, we may suggest a 30-minute discovery call.</p>
+          <div class="service-features">
+            <h4>Why teams choose us</h4>
+            <ul>
+              <li>Clear roadmaps and measurable milestones</li>
+              <li>Enterprise-grade security and compliance</li>
+              <li>Ongoing support and optimization</li>
+            </ul>
+          </div>
+        </div>
+        <div class="service-image"><i class="fas fa-comments"></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <div class="footer-logo"><i class="fas fa-brain"></i><span>AI Nexus Pro</span></div>
+          <p>Empowering businesses with intelligent AI solutions that drive growth, efficiency, and innovation.</p>
+          <div class="footer-social">
+            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+          </div>
+        </div>
+        <div class="footer-section">
+          <h4>Services</h4>
+          <ul>
+            <li><a href="chatbot.html">AI Chatbot</a></li>
+            <li><a href="voicebot.html">Voice Bot</a></li>
+            <li><a href="calendar.html">Smart Calendar</a></li>
+            <li><a href="payments.html">Payment System</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="../index.html#about">About Us</a></li>
+            <li><a href="#contact">Contact</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Blog</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>Support</h4>
+          <ul>
+            <li><a href="#">Documentation</a></li>
+            <li><a href="#">API Reference</a></li>
+            <li><a href="#">Help Center</a></li>
+            <li><a href="#">Status</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2024 AI Nexus Pro. All rights reserved. | Privacy Policy | Terms of Service</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/ai-integration.js"></script>
+  <script src="../js/script.js"></script>
+</body>
+</html>
+
+

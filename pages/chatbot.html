@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot - AI Nexus Pro</title>
+    <meta name="description" content="Intelligent AI chatbot with natural language processing and 24/7 customer support">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/integrations.css">
+    
+    <style>
+        .chatbot-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+        }
+        
+        .chatbot-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .chatbot-demo {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            margin: 40px 0;
+            overflow: hidden;
+        }
+        
+        .chatbot-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .chatbot-content {
+            padding: 40px;
+            min-height: 600px;
+        }
+        
+        .chat-interface {
+            border: 2px solid #e1e5e9;
+            border-radius: 15px;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .message.user {
+            flex-direction: row-reverse;
+        }
+        
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .message.user .message-avatar {
+            background: #667eea;
+            color: white;
+        }
+        
+        .message.bot .message-avatar {
+            background: #764ba2;
+            color: white;
+        }
+        
+        .message-content {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            max-width: 70%;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+        }
+        
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #e1e5e9;
+            background: white;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid #e1e5e9;
+            border-radius: 25px;
+            font-size: 16px;
+        }
+        
+        .chat-input button {
+            padding: 15px 25px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 30px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="../index.html">
+                    <i class="fas fa-brain"></i>
+                    <span>AI Nexus Pro</span>
+                </a>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="../index.html" class="nav-link">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a href="chatbot.html" class="nav-link active">AI Chatbot</a>
+                </li>
+                <li class="nav-item">
+                    <a href="voicebot.html" class="nav-link">Voice Bot</a>
+                </li>
+                <li class="nav-item">
+                    <a href="calendar.html" class="nav-link">Calendar</a>
+                </li>
+                <li class="nav-item">
+                    <a href="payments.html" class="nav-link">Payments</a>
+                </li>
+                <li class="nav-item">
+                    <a href="admin.html" class="nav-link">Admin</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="chatbot-hero">
+        <div class="container">
+            <h1>AI Chatbot</h1>
+            <p>Intelligent customer support with natural language processing and 24/7 availability</p>
+        </div>
+    </section>
+
+    <!-- Chatbot Demo -->
+    <section class="chatbot-container">
+        <div class="chatbot-demo">
+            <div class="chatbot-header">
+                <h2>Try Our AI Chatbot</h2>
+                <p>Ask questions about our services, pricing, or any business inquiries</p>
+            </div>
+            <div class="chatbot-content">
+                <div class="chat-interface">
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input">
+                        <input type="text" id="userInput" placeholder="Type your message here..." />
+                        <button id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h3>Natural Language Processing</h3>
+                <p>Advanced NLP capabilities to understand and respond to complex queries in natural language.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <h3>24/7 Availability</h3>
+                <p>Always available to provide instant responses and support to your customers.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>Analytics & Insights</h3>
+                <p>Comprehensive analytics to track conversations, identify trends, and improve performance.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <h3>Easy Integration</h3>
+                <p>Seamless integration with your existing website, CRM, and business systems.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Scripts -->
+    <script src="../js/config.js"></script>
+    <script src="../js/tiledesk-chatbot.js"></script>
+    <script>
+        // Enhanced chatbot functionality
+        class EnhancedChatbot {
+            constructor() {
+                this.messages = [];
+                this.isTyping = false;
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadInitialMessages();
+            }
+
+            setupEventListeners() {
+                const sendBtn = document.getElementById('sendBtn');
+                const userInput = document.getElementById('userInput');
+
+                sendBtn.addEventListener('click', () => this.sendMessage());
+                userInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.sendMessage();
+                    }
+                });
+            }
+
+            loadInitialMessages() {}
+
+            sendMessage() {
+                const userInput = document.getElementById('userInput');
+                const message = userInput.value.trim();
+
+                if (message) {
+                    this.addMessage('user', message);
+                    userInput.value = '';
+                    this.processUserMessage(message);
+                }
+            }
+
+            addMessage(sender, text) {
+                const chatMessages = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}`;
+
+                const avatar = document.createElement('div');
+                avatar.className = 'message-avatar';
+                avatar.innerHTML = sender === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+
+                const content = document.createElement('div');
+                content.className = 'message-content';
+                content.innerHTML = `<p>${text}</p>`;
+
+                messageDiv.appendChild(avatar);
+                messageDiv.appendChild(content);
+                chatMessages.appendChild(messageDiv);
+
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            async processUserMessage(message) {
+                this.showTyping();
+                try {
+                    const res = await fetch(AI_CONFIG.webhook.endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message })
+                    });
+                    const data = await res.json();
+                    const reply = data.reply || data.response || JSON.stringify(data);
+                    this.hideTyping();
+                    this.addMessage('bot', reply);
+                } catch (e) {
+                    // Fallback to OpenRouter DeepSeek R1
+                    try {
+                        const reply = await this.callOpenRouter(message);
+                        this.hideTyping();
+                        this.addMessage('bot', reply);
+                    } catch (err) {
+                        this.hideTyping();
+                        this.addMessage('bot', 'Sorry, I could not reach the AI right now. Please try again.');
+                    }
+                }
+            }
+
+            showTyping() {
+                const chatMessages = document.getElementById('chatMessages');
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'message bot typing';
+                typingDiv.id = 'typingIndicator';
+                typingDiv.innerHTML = `
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <p><i class="fas fa-circle"></i><i class="fas fa-circle"></i><i class="fas fa-circle"></i></p>
+                    </div>
+                `;
+                chatMessages.appendChild(typingDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            hideTyping() {
+                const typingIndicator = document.getElementById('typingIndicator');
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+            }
+
+            generateResponse(message) { return ''; }
+
+            async callOpenRouter(userMessage) {
+                const response = await fetch(AI_CONFIG.openrouter.endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AI_CONFIG.openrouter.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: AI_CONFIG.openrouter.model,
+                        messages: [
+                            { role: 'system', content: 'You are a chatbot for AI Nexus Pro. Keep responses helpful, concise, and dynamic.' },
+                            { role: 'user', content: userMessage }
+                        ],
+                        max_tokens: AI_CONFIG.openrouter.maxTokens,
+                        temperature: AI_CONFIG.openrouter.temperature
+                    })
+                });
+                if (!response.ok) throw new Error('OpenRouter error');
+                const data = await response.json();
+                return data.choices[0].message.content;
+            }
+        }
+
+        // Initialize enhanced chatbot
+        document.addEventListener('DOMContentLoaded', () => {
+            new EnhancedChatbot();
+        });
+    </script>
+</body>
+</html> 
