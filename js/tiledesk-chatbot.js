@@ -261,6 +261,7 @@ class TiledeskChatbot {
             const text = data.reply || data.response || '';
             this.sendResponse({ text, type: 'webhook', confidence: 1 });
         } catch (e) {
+            console.warn('Tiledesk webhook failed, falling back', e);
             // Fallback to OpenRouter
             try {
                 const response = await fetch(AI_CONFIG.openrouter.endpoint, {

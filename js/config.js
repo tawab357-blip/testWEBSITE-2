@@ -60,6 +60,16 @@ const AI_CONFIG = {
         // Contact form submission endpoint (Google Sheets webhook)
         contactWebhookEndpoint: 'http://localhost:5678/webhook/a204f0d5-3fea-4244-8101-953bbb503799',
         timeoutMs: 15000
+    },
+
+    // Vapi Voice Bot settings
+    vapi: {
+        // Public API key provided by user
+        publicApiKey: 'aaa6910c-3caa-4034-8b46-7e0d490290bd',
+        // Optional: set your Vapi Assistant ID if you have one
+        assistantId: '',
+        // Web SDK URL (can be overridden if needed)
+        webSdkUrl: 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/index.umd.js'
     }
 };
 

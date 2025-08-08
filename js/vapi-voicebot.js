@@ -36,7 +36,8 @@ class VapiVoiceBot {
     setupVapiIntegration() {
         // Vapi configuration
         this.vapiConfig = {
-            apiKey: 'YOUR_VAPI_API_KEY', // Replace with your Vapi API key
+            apiKey: (typeof AI_CONFIG !== 'undefined' && AI_CONFIG.vapi && AI_CONFIG.vapi.publicApiKey) || 'YOUR_VAPI_API_KEY',
+            assistantId: (typeof AI_CONFIG !== 'undefined' && AI_CONFIG.vapi && AI_CONFIG.vapi.assistantId) || undefined,
             assistant: {
                 name: this.voiceConfig.assistant.name,
                 voice: this.voiceConfig.assistant.voice,
@@ -54,12 +55,25 @@ class VapiVoiceBot {
             callSettings: this.voiceConfig.callSettings
         };
 
-        // Initialize Vapi SDK if available
-        if (typeof Vapi !== 'undefined') {
-            Vapi.init(this.vapiConfig);
-        } else {
-            console.warn('Vapi SDK not loaded. Voice features will be limited.');
-        }
+        // Initialize/load Vapi SDK
+        const ensureVapi = () => new Promise((resolve) => {
+            if (typeof Vapi !== 'undefined') return resolve();
+            const script = document.createElement('script');
+            const sdkUrl = (typeof AI_CONFIG !== 'undefined' && AI_CONFIG.vapi && AI_CONFIG.vapi.webSdkUrl) || 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/index.umd.js';
+            script.src = sdkUrl;
+            script.async = true;
+            script.onload = () => resolve();
+            script.onerror = () => resolve();
+            document.head.appendChild(script);
+        });
+
+        ensureVapi().then(() => {
+            if (typeof Vapi !== 'undefined') {
+                Vapi.init(this.vapiConfig);
+            } else {
+                console.warn('Vapi SDK not loaded. Voice features will be limited.');
+            }
+        });
     }
 
     generateSystemPrompt() {
@@ -216,11 +230,14 @@ Keep responses under 30 seconds and always offer next steps.`;
             
             if (typeof Vapi !== 'undefined') {
                 // Use Vapi SDK for actual voice call
-                this.currentCall = await Vapi.call({
-                    phoneNumber: '+1234567890', // Replace with your business number
+                const callPayload = this.vapiConfig.assistantId ? {
+                    assistantId: this.vapiConfig.assistantId,
+                    callSettings: this.vapiConfig.callSettings
+                } : {
                     assistant: this.vapiConfig.assistant,
                     callSettings: this.vapiConfig.callSettings
-                });
+                };
+                this.currentCall = await Vapi.call(callPayload);
             } else {
                 // Fallback: simulate voice call
                 this.simulateVoiceCall();

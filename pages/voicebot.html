@@ -384,6 +384,16 @@
 
     <!-- Scripts -->
     <script src="../js/config.js"></script>
+    <!-- Load Vapi SDK early to ensure availability -->
+    <script>
+        (function loadVapi(){
+            if (typeof Vapi === 'undefined') {
+                var s = document.createElement('script');
+                s.src = (window.AI_CONFIG && AI_CONFIG.vapi && AI_CONFIG.vapi.webSdkUrl) || 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/index.umd.js';
+                s.async = true; document.head.appendChild(s);
+            }
+        })();
+    </script>
     <script src="../js/vapi-voicebot.js"></script>
     <script>
         // Enhanced voice bot functionality
