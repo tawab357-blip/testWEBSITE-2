@@ -97,6 +97,10 @@ Keep responses under 30 seconds and always offer next steps.`;
     }
 
     setupVoiceUI() {
+        // Create voice interaction UI only if page doesn't have controls
+        if (document.getElementById('startCall') && document.getElementById('endCall')) {
+            return;
+        }
         // Create voice interaction UI
         const voiceUI = document.createElement('div');
         voiceUI.id = 'voice-bot-ui';
@@ -227,6 +231,12 @@ Keep responses under 30 seconds and always offer next steps.`;
 
         try {
             this.updateCallStatus('Initiating call...', 'connecting');
+            // Ensure microphone permissions trigger the browser prompt
+            const micGranted = await this.ensureMicrophonePermission();
+            if (!micGranted) {
+                this.updateCallStatus('Microphone permission denied. Please allow access and try again.', 'error');
+                return;
+            }
             
             if (typeof Vapi !== 'undefined') {
                 // Use Vapi SDK for actual voice call
@@ -245,6 +255,18 @@ Keep responses under 30 seconds and always offer next steps.`;
         } catch (error) {
             console.error('Failed to start voice call:', error);
             this.updateCallStatus('Call failed. Please try again.', 'error');
+        }
+    }
+
+    async ensureMicrophonePermission() {
+        try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(t => t.stop());
+            return true;
+        } catch (e) {
+            console.warn('Mic permission error', e);
+            return false;
         }
     }
 

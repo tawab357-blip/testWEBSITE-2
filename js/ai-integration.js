@@ -142,6 +142,28 @@ class AIIntegration {
             if (!response.ok) throw new Error(`Webhook error: ${response.status}`);
             const data = await response.json();
             return data.reply || data.response || JSON.stringify(data);
+        } catch (e) {
+            console.warn('Primary webhook failed', e);
+            // fallback: iframe POST to bypass CORS
+            try {
+                await new Promise((resolve, reject) => {
+                    const iframeName = 'aiWebhook_iframe_' + Date.now();
+                    const iframe = document.createElement('iframe');
+                    iframe.name = iframeName; iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                    const form = document.createElement('form');
+                    form.action = api.endpoint; form.method = 'POST'; form.target = iframeName; form.style.display = 'none';
+                    const inputField = document.createElement('input'); inputField.type = 'hidden'; inputField.name = 'message'; inputField.value = input; form.appendChild(inputField);
+                    document.body.appendChild(form);
+                    iframe.onload = () => { setTimeout(() => { form.remove(); iframe.remove(); resolve(); }, 0); };
+                    setTimeout(() => { try { form.remove(); iframe.remove(); } catch(_){} resolve(); }, 4000);
+                    form.submit();
+                });
+                return '';
+            } catch (fallbackErr) {
+                console.warn('Iframe webhook fallback failed', fallbackErr);
+                return null;
+            }
         } finally {
             clearTimeout(timeout);
         }
